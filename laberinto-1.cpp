@@ -11,6 +11,8 @@ mt19937 generadorNumero(rd()); // se inicializa un generador de números aleator
 
 // declaramos las filas, colummnas y el valor ingresado.
 int filas, columnas, valorIngresado;
+bool termino = false;
+
 
 // estructuramos la Celda.
 struct Celda
@@ -28,62 +30,93 @@ struct Celda
 // definimos un nuevo tipo llamado Laberinto, el tipo Laberinto es un vector de vectores donde va cada celda.
 typedef vector<vector<Celda> > Laberinto;
 
-// definimos la funcion pasando como parametro la cantidad de filas de colummnas y los referenciamos respectivamente.
-void generarLaberinto (Laberinto &laberinto, int fil, int col, mt19937 &generadorNumero){
+void generarLaberinto(Laberinto &laberinto, int fila, int columna, mt19937 &gen, int inicioFila, int inicioColumna) {
 
-    // se marca la celda en la posición [fil][col] como visitada.
-    laberinto[fil][col].celdaVisitada = true;
+    laberinto[fila][columna].celdaVisitada = true;
 
-    // se declara un vector de pares de enteros. Cada par representa una dirección.
+    laberinto[inicioFila][inicioColumna].paredIzquierda = false;
+    laberinto[1][0].paredInferior= false;
+
+    // Comprobar si es el punto de inicio o salida y actualizar las paredes correspondientes
+
     vector<pair<int, int> > direcciones;
     
-    // se agrega al vector 'direcciones' pares de coordenadas que representan direcciones (x, y) derecha, izquierda, arriba, abajo.
     direcciones.push_back(make_pair(1, 0));
     direcciones.push_back(make_pair(-1, 0));
     direcciones.push_back(make_pair(0, 1));
     direcciones.push_back(make_pair(0, -1));
 
-    // mezclamos las direcciones usando un generador de números aleatorios con la funcion shuffle.
-    shuffle(direcciones.begin(), direcciones.end(), generadorNumero);
 
-    // el bucle recorre cada elemento en el vector 'direcciones'. 
-    for (size_t i = 0; i < direcciones.size(); ++i) {
+    shuffle(direcciones.begin(), direcciones.end(), gen);
 
-        // obtenemos la dirección actual y referenciamos "dir".
+    for (int i = 0; i < direcciones.size(); ++i) {
         const pair<int, int> &dir = direcciones[i]; 
         
-        // Calculamos la nueva posición.
-        int nuevaFila = fil + dir.first;
-        int nuevaColumna = col + dir.second;
+        int nuevaFila = fila + dir.first;
+        int nuevaColumna = columna + dir.second;
 
-        // verificamos si la celda está dentro del limite de Laberinto y si no ha sido visitada, por defecto nos devuelve falso, y con el operador logico le decimos true
         if ((nuevaFila >= 0 && nuevaFila < filas) && (nuevaColumna >= 0 && nuevaColumna < columnas) && (!laberinto[nuevaFila][nuevaColumna].celdaVisitada)) {
-
-            // eliminamos las paredes entre las celdas actuales
             if (dir.first == 1) {
-                laberinto[fil][col].paredInferior = false;
+                laberinto[fila][columna].paredInferior = false;
                 laberinto[nuevaFila][nuevaColumna].paredSuperior = false;
             } else if (dir.first == -1) {
-                laberinto[fil][col].paredSuperior = false;
+                laberinto[fila][columna].paredSuperior = false;
                 laberinto[nuevaFila][nuevaColumna].paredInferior = false;
             } else if (dir.second == 1) {
-                laberinto[fil][col].paredDerecha = false;
+                laberinto[fila][columna].paredDerecha = false;
                 laberinto[nuevaFila][nuevaColumna].paredIzquierda = false;
             } else if (dir.second == -1) {
-                laberinto[fil][col].paredIzquierda = false;
+                laberinto[fila][columna].paredIzquierda = false;
                 laberinto[nuevaFila][nuevaColumna].paredDerecha = false;
             }
 
-            // llamamos de vuelta a nuestra funcion recursivamente 
-            generarLaberinto(laberinto, nuevaFila, nuevaColumna, generadorNumero);
+            generarLaberinto(laberinto, nuevaFila, nuevaColumna, gen, inicioFila, inicioColumna);
         }
     }
-};
+}
+ void imprimirLaberinto(Laberinto &laberinto) {
 
-// Función para resolver el laberinto utilizando DFS
-void resolverLaberinto(Laberinto &laberinto, int filaActual, int columnaActual) {
-    // Marcar la celda como visitada
-    laberinto[filaActual][columnaActual].celdaVisitada = true;
+    laberinto[0][0].paredIzquierda = false;
+    laberinto[filas - 1][columnas - 1].paredInferior = false;
+
+    // Itera por la cantidad de filas.
+    for (size_t i = 0; i < laberinto.size(); ++i) {
+        // Imprime las paredes superiores de la fila actual.
+        for (size_t j = 0; j < laberinto[i].size(); ++j) {
+            cout << "+";
+            cout << (laberinto[i][j].paredSuperior ? "---" : "   ");
+        }
+        cout << "+" << endl;
+
+        // Itera por la cantidad de columnas, pero esta vez imprime las paredes izquierdas y derechas.
+        for (size_t j = 0; j < laberinto[i].size(); ++j) {
+            // Imprime la pared izquierda si está presente o un espacio en blanco si no.
+            cout << (laberinto[i][j].paredIzquierda ? "|" : " ");
+            cout << "   ";
+            // Imprime la pared derecha si está presente en la celda actual o una pared vertical si es la última columna.
+            if (j == laberinto[i].size() - 1) {
+                cout << "|";
+            }
+        }
+        cout << endl;
+    }
+
+    // Imprime las paredes inferiores para la última fila.
+    for (size_t j = 0; j < laberinto[0].size(); ++j) {
+        cout << "+";
+        cout << (laberinto[laberinto.size() - 1][j].paredInferior ? "---" : "   ");
+    }
+    cout << "+" << endl;
+}
+
+// Función para resolver el laberinto utilizando DFS y marcar solo las celdas del camino final
+bool resolverLaberinto(Laberinto &laberinto, int filaActual, int columnaActual, int filaFinal, int columnaFinal) {
+    // Si alcanzamos la celda final, hemos encontrado el camino
+    if (filaActual == filaFinal && columnaActual == columnaFinal) {
+        termino = true;
+
+        return termino;
+    }
 
     // Vector de direcciones posibles: arriba, abajo, izquierda, derecha
     vector<pair<int, int> > direcciones;
@@ -102,82 +135,56 @@ void resolverLaberinto(Laberinto &laberinto, int filaActual, int columnaActual) 
         // Verificar si la nueva celda es válida y no ha sido visitada
         if (nuevaFila >= 0 && nuevaFila < laberinto.size() &&
             nuevaColumna >= 0 && nuevaColumna < laberinto[0].size() &&
-            !laberinto[nuevaFila][nuevaColumna].celdaVisitada) {
-            // Verificar si no hay pared entre las celdas
-            if (dir.first == -1 && !laberinto[filaActual][columnaActual].paredSuperior) {
-                resolverLaberinto(laberinto, nuevaFila, nuevaColumna);
-            } else if (dir.first == 1 && !laberinto[filaActual][columnaActual].paredInferior) {
-                resolverLaberinto(laberinto, nuevaFila, nuevaColumna);
-            } else if (dir.second == -1 && !laberinto[filaActual][columnaActual].paredIzquierda) {
-                resolverLaberinto(laberinto, nuevaFila, nuevaColumna);
-            } else if (dir.second == 1 && !laberinto[filaActual][columnaActual].paredDerecha) {
-                resolverLaberinto(laberinto, nuevaFila, nuevaColumna);
+            !laberinto[nuevaFila][nuevaColumna].paredSuperior &&
+            !laberinto[nuevaFila][nuevaColumna].paredInferior &&
+            !laberinto[nuevaFila][nuevaColumna].paredIzquierda &&
+            !laberinto[nuevaFila][nuevaColumna].paredDerecha &&
+            !laberinto[nuevaFila][nuevaColumna].celdaVisitada && termino != true) {
+            
+            // Intentar resolver el laberinto desde la nueva celda
+            if (resolverLaberinto(laberinto, nuevaFila, nuevaColumna, filaFinal, columnaFinal)) {
+                // Marcar la celda como parte del camino
+                laberinto[nuevaFila][nuevaColumna].celdaVisitada = true;
+                return true;
             }
         }
     }
+
+    // Si no se encontró el camino desde ninguna de las celdas adyacentes, retornar falso
+    return false;
 }
 
-// definimos la funcion pasando como parametro el tipo laberinto y lo referenciamos.
-void imprimirLaberinto(Laberinto &laberinto) {
-
-    // itera por la cantiad de filas.
-    for (int i = 0; i < filas; ++i) {
-
-        // itera por la cantidad de columnas y imprime las paredes superiores.
-        for (int j = 0; j < columnas; ++j) {
-            cout << "+";
-
-            // si la paredSuperior es true imprime "---" y si no espacio vacio
-            cout << (laberinto[i][j].paredSuperior ? "---" : "   ");
-        }
-        cout << "+" << endl;
-
-        // itera por la cantidad de columnas, pero esta vez imprime las paredes izquierdas.
-        for (int j = 0; j < columnas; ++j) {
-
-            // si la paredIzquierda es true imprime "|" y si no espacio vacio
-            cout << (laberinto[i][j].paredIzquierda ? "|" : " ");
-            cout << "   ";
-        }
-        cout << "|" << endl;
-    }
-
-    // itera por la cantidad de columnas, pero se imprime las paredes inferiores.
-    for (int j = 0; j < columnas; ++j) {
-        cout << "+---";
-    }
-    cout << "+" << endl;
-}
-
-// Función para imprimir el laberinto, marcando el camino encontrado durante la resolución
 void imprimirLaberintoResuelto(Laberinto &laberinto) {
-    // Itera por las filas del laberinto
-    for (int i = 0; i < filas; ++i) {
-        // Imprime las paredes superiores
-        for (int j = 0; j < columnas; ++j) {
+    laberinto[0][0].paredIzquierda = false;
+    laberinto[filas - 1][columnas - 1].paredInferior = false;
+
+    // Itera por la cantidad de filas.
+    for (size_t i = 0; i < laberinto.size(); ++i) {
+        // Imprime las paredes superiores de la fila actual.
+        for (size_t j = 0; j < laberinto[i].size(); ++j) {
             cout << "+";
             cout << (laberinto[i][j].paredSuperior ? "---" : "   ");
         }
         cout << "+" << endl;
 
-        // Imprime las paredes izquierdas y el contenido de las celdas
-        for (int j = 0; j < columnas; ++j) {
+        // Itera por la cantidad de columnas, pero esta vez imprime las paredes izquierdas y derechas.
+        for (size_t j = 0; j < laberinto[i].size(); ++j) {
+            // Imprime la pared izquierda si está presente o un espacio en blanco si no.
             cout << (laberinto[i][j].paredIzquierda ? "|" : " ");
-
-            // Si la celda ha sido visitada, imprime un símbolo para marcar el camino
-            if (laberinto[i][j].celdaVisitada) {
-                cout << " X ";
-            } else {
-                cout << "   ";
+            // Imprime " X " si la celda ha sido marcada como parte del camino, de lo contrario, imprime tres espacios en blanco.
+            cout << (laberinto[i][j].celdaVisitada ? " X " : "   ");
+            // Imprime la pared derecha si está presente en la celda actual o una pared vertical si es la última columna.
+            if (j == laberinto[i].size() - 1) {
+                cout << "|";
             }
         }
-        // Imprime la pared derecha de la última columna
-        cout << "|" << endl;
+        cout << endl;
     }
 
-    // Imprime las paredes inferiores
-    for (int j = 0; j < columnas; ++j) {
-        cout << "+---";
+    // Imprime las paredes inferiores para la última fila.
+    for (size_t j = 0; j < laberinto[0].size(); ++j) {
+        cout << "+";
+        cout << (laberinto[laberinto.size() - 1][j].paredInferior ? "---" : "   ");
     }
     cout << "+" << endl;
 }
@@ -199,8 +206,13 @@ int main () {
     // llamamos a nuestro tipo Laberinto y le nombramos como laberinto, cargamos las filas del primer vector, luego dentro de ese vector cargamos las columnas.
     Laberinto laberinto(filas, vector<Celda>(columnas));
 
+    int filaFinal = filas - 1;  
+    int columnaFinal = columnas - 1;  
+
+
     // lLamamos a la funcion de generar el Laberinto.
-    generarLaberinto(laberinto, 0, 0, generadorNumero);
+    generarLaberinto(laberinto, 0, 0, generadorNumero, 0, 0);
+
 
     // aca llamamos a nuestra funcion donde imprimimos el laberinto
     imprimirLaberinto(laberinto);
@@ -218,7 +230,7 @@ int main () {
 
     // si el usuario ingresa 1, le imprime el Laberinto resuelto.
     if ( valorIngresado == 1 ) {
-         resolverLaberinto(laberinto, 0, 0);
+         resolverLaberinto(laberinto, 0, 0,  filaFinal, columnaFinal);
          imprimirLaberintoResuelto(laberinto);
 
     } else {
