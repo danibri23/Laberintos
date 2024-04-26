@@ -11,7 +11,6 @@ enum class Direccion { ARRIBA, ABAJO, IZQUIERDA, DERECHA };
 // Función para verificar si una celda está dentro de los límites del laberinto
 bool estaDentroLimites(int x, int y, int filas, int columnas) {
     return x >= 0 && x < filas && y >= 0 && y < columnas;
-
     
 }
 

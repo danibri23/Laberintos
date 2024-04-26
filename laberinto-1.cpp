@@ -113,9 +113,7 @@ void generarLaberinto(Laberinto &laberinto, int fila, int columna, mt19937 &gen,
 bool resolverLaberinto(Laberinto &laberinto, int filaActual, int columnaActual, int filaFinal, int columnaFinal) {
     // Si alcanzamos la celda final, hemos encontrado el camino
     if (filaActual == filaFinal && columnaActual == columnaFinal) {
-        termino = true;
-
-        return termino;
+        return true;
     }
 
     // Vector de direcciones posibles: arriba, abajo, izquierda, derecha
